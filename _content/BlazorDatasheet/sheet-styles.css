@@ -1,15 +1,25 @@
-﻿.vars {
+.vars {
     --sheet-font-weight: normal;
     --sheet-font-size: 0.75rem;
     --sheet-font-family: "Segoe UI Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Helvetica Neue", Arial, sans-serif;
     --selection-border-thickness: 2px;
+    --sheet-border-width: 1px;
+    --sheet-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    --sheet-cell-padding-vertical: 3px;
+    --sheet-cell-padding-horizontal: 6px;
+    /* The selection border straddles the cell edge, so it eats half its thickness into the
+       cell. Editors are inset by that much, and take back the same amount off their padding
+       so their text lands on the cell's text position. */
+    --editor-padding-vertical: max(0px, calc(var(--sheet-cell-padding-vertical) - var(--selection-border-thickness) / 2));
+    --editor-padding-horizontal: max(0px, calc(var(--sheet-cell-padding-horizontal) - var(--selection-border-thickness) / 2));
 }
 
 .vars[theme='default'] {
     --sheet-foreground-color: #1f2937;
     --sheet-foreground-color-disabled: #9ca3af;
     --sheet-bg-color: #ffffff;
-    --sheet-border-style: 1px solid #d9e1ec;
+    --sheet-gridline-color: #d9e1ec;
+    --sheet-border-style: var(--sheet-border-width) solid var(--sheet-gridline-color);
     --row-header-bg-color: #f8fafd;
     --col-header-bg-color: #f4f7fc;
     --head-selection-bg-color: #dbeafe;
@@ -20,11 +30,22 @@
     --invalid-cell-foreground-color: #dc2626;
     --selection-bg-color: rgba(37, 99, 235, 0.14);
     --selection-border-color: #2563eb;
+    --selection-bg-color-unfocused: rgba(100, 116, 139, 0.10);
+    --selection-border-color-unfocused: #94a3b8;
+    --head-selection-bg-color-unfocused: #e8edf5;
+    --sheet-focus-ring-color: rgba(37, 99, 235, 0.40);
     --cell-highlight-bg-color: #a9e5b6;
     --num-highlight-color: #18688f;
     --string-highlight-color: #256b3e;
     --sheet-menu-bg-color: #fff;
-    --sheet-menu-hover-color: #e6f0ff;
+    --sheet-menu-hover-color: #f1f4f8;
+    --sheet-menu-border-color: #d4dae3;
+    --sheet-menu-divider-color: #e7eaf0;
+    --sheet-menu-muted-color: #69737f;
+    --sheet-menu-section-bg-color: #fbfcfe;
+    --sheet-menu-field-bg-color: #ffffff;
+    --sheet-menu-accent-color: #2c5fa8;
+    --sheet-menu-shadow-color: rgba(16, 24, 40, 0.10);
     --sheet-button-bg-color: #f8fafc;
     --sheet-button-bg-hover-color: #eef2f7;
     --sheet-button-border: 1px solid #c5d0df;
@@ -41,22 +62,34 @@
     --sheet-foreground-color: #a9a9a9;
     --sheet-foreground-color-disabled: #807f7f;
     --sheet-bg-color: #262626;
-    --sheet-border-style: 1px solid #3f3f3f;
+    --sheet-gridline-color: #3f3f3f;
+    --sheet-border-style: var(--sheet-border-width) solid var(--sheet-gridline-color);
     --row-header-bg-color: #2d2d2d;
     --col-header-bg-color: #2d2d2d;
     --head-selection-bg-color: rgb(53, 57, 60);
     --row-header-foreground-color: #a4a4a4;
     --col-header-foreground-color: #a4a4a4;
-    --icon-color: #000000;
+    --icon-color: var(--sheet-foreground-color);
     --shadow-overlay-color: #000000;
     --invalid-cell-foreground-color: #d71b1b;
     --selection-bg-color: rgba(83, 101, 121, 0.18);
     --selection-border-color: #1c6f9a;
+    --selection-bg-color-unfocused: rgba(83, 101, 121, 0.09);
+    --selection-border-color-unfocused: #4d5761;
+    --head-selection-bg-color-unfocused: rgb(45, 48, 51);
+    --sheet-focus-ring-color: rgba(56, 141, 189, 0.55);
     --cell-highlight-bg-color: #456b4d;
     --num-highlight-color: #d4d6ec;
     --string-highlight-color: #79a16a;
-    --sheet-menu-bg-color: #333;
-    --sheet-menu-hover-color: #202e3e;
+    --sheet-menu-bg-color: #2b2e33;
+    --sheet-menu-hover-color: #383d45;
+    --sheet-menu-border-color: #43494f;
+    --sheet-menu-divider-color: #3a3f46;
+    --sheet-menu-muted-color: #8b939e;
+    --sheet-menu-section-bg-color: #303439;
+    --sheet-menu-field-bg-color: #24272b;
+    --sheet-menu-accent-color: #79a7e6;
+    --sheet-menu-shadow-color: rgba(0, 0, 0, 0.6);
     --sheet-button-bg-color: #292929;
     --sheet-button-bg-hover-color: #202e3e;
     --sheet-button-border: 1px solid #3f4d5f;
@@ -76,8 +109,31 @@
     contain: style;
     line-height: 1.35;
     border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    box-shadow: var(--sheet-shadow);
     position: relative;
+}
+
+/* The UA outline is replaced with a themed ring that follows the sheet's corner radius. It
+   only shows for keyboard focus - a pointer user just clicked the cell they're looking at. */
+.bds-sheet:focus {
+    outline: none;
+}
+
+.bds-sheet:focus-visible {
+    box-shadow: var(--sheet-shadow), 0 0 0 2px var(--sheet-focus-ring-color);
+}
+
+/* Focus moved by our own pointerdown handler still matches :focus-visible in chrome. */
+.bds-sheet[data-pointer-focus]:focus-visible {
+    box-shadow: var(--sheet-shadow);
+}
+
+/* The selection follows browser focus, as in excel: while focus is elsewhere it dims. The
+   attribute is set from window-events.js the moment focus changes. */
+.bds-sheet:not([data-focused]) {
+    --selection-bg-color: var(--selection-bg-color-unfocused);
+    --selection-border-color: var(--selection-border-color-unfocused);
+    --head-selection-bg-color: var(--head-selection-bg-color-unfocused);
 }
 
 .bds-sheet-top-border::before,
@@ -174,23 +230,161 @@
     background: var(--sheet-button-bg-hover-color);
 }
 
+.bds-sheet-button-primary {
+    background: var(--sheet-menu-accent-color);
+    border-color: var(--sheet-menu-accent-color);
+    color: #ffffff;
+}
+
+.bds-sheet-button-primary:hover {
+    background: var(--sheet-menu-accent-color);
+    opacity: 0.9;
+}
+
 .bds-sheet-cell {
     user-select: none;
     -moz-user-select: none;
     -webkit-user-select: none;
-    padding: 3px 6px;
-    border-right: var(--sheet-border-style);
-    border-bottom: var(--sheet-border-style);
+    padding: var(--sheet-cell-padding-vertical) var(--sheet-cell-padding-horizontal);
     overflow: hidden;
     width: 100%;
     height: 100%;
     display: flex;
     box-sizing: border-box;
+    /* Nothing is painted outside the cell box already, so this changes nothing visually, but it
+       lets the browser skip the cell subtree when the overlay layers above it repaint. Size and
+       layout containment are deliberately left out: autofit measures cell content and rows are
+       subgrids. */
+    contain: paint;
 }
 
+.bds-pane-content {
+    position: relative;
+}
+
+.bds-gridline-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    fill: none;
+    stroke: var(--sheet-gridline-color);
+    stroke-width: var(--sheet-border-width);
+}
+
+/* Headings are outside the pane's gridline layer. */
+.bds-row-head,
+.bds-col-head {
+    border-right: var(--sheet-border-style);
+    border-bottom: var(--sheet-border-style);
+}
+
+.bds-cell-align-start {
+    justify-content: start;
+    text-align: left;
+}
+
+.bds-cell-align-center {
+    justify-content: center;
+    text-align: center;
+}
+
+.bds-cell-align-end {
+    justify-content: end;
+    text-align: right;
+}
+
+/* Numeric values stay end-aligned while they fit. */
+.bds-cell-number.bds-cell-align-end {
+    justify-content: safe end;
+}
+
+.bds-cell-number.bds-cell-align-end .bds-cell-container {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: '';
+}
+
+.bds-cell-number-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: '';
+    white-space: nowrap;
+}
+
+@supports (height: 1lh) {
+    .bds-cell-number-text,
+    .bds-cell-number-fallback {
+        display: flex;
+        height: 1lh;
+        min-width: 0;
+        flex-wrap: wrap;
+        align-items: start;
+        overflow: hidden;
+        text-overflow: clip;
+    }
+
+    /* While a number fits, its much larger flex-grow leaves the fallback before it no width. If
+       the number's full width is too large, it wraps intact to the hidden second line and
+       the fallback occupies the visible first line. A fallback makes the same choice between its
+       own rounding and the next shorter fallback nested inside it, ending with the hashes. */
+    .bds-cell-number-fallback {
+        flex: 1 0 0;
+    }
+
+    .bds-cell-number-value,
+    .bds-cell-number-fallback::after {
+        flex: 99999 0 0;
+        min-width: max-content;
+    }
+
+    /* The alternative text keeps the generated roundings and hashes out of the accessibility
+       tree; assistive technology still reads the complete value span. */
+    .bds-cell-number-fallback::after {
+        content: attr(data-value);
+        content: attr(data-value) / "";
+    }
+
+    .bds-cell-number-hashes::before {
+        content: "################################";
+        content: "################################" / "";
+        flex: 1 0 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    /* autofit measures the full width of the number */
+    .bds-autoFit .bds-cell-number-fallback,
+    .bds-autoFit .bds-cell-number-hashes::before {
+        display: none;
+    }
+
+    .bds-autoFit .bds-cell-number-value {
+        min-width: max-content;
+    }
+}
+
+.bds-cell-valign-start {
+    align-items: start;
+}
+
+.bds-cell-valign-center {
+    align-items: center;
+}
+
+.bds-cell-valign-end {
+    align-items: end;
+}
+
+/* The background hides the gridlines inside the merge but leaves out the last pixel column/row, so
+   the gridline layer's right/bottom edge shows through there as it does for ordinary cells, and a
+   cell fill (which covers the whole merge) hides it as it does for ordinary cells. The left/top
+   edges are the neighbouring tracks' gridlines, which sit just outside the merge. */
 .merged-cell {
-    background: var(--sheet-bg-color);
-    border: var(--sheet-border-style);
+    background: linear-gradient(var(--sheet-bg-color), var(--sheet-bg-color)) top left /
+        calc(100% - var(--sheet-border-width)) calc(100% - var(--sheet-border-width)) no-repeat;
     pointer-events: all;
     overflow: clip;
 }
@@ -203,10 +397,55 @@
     background: var(--row-header-bg-color);
 }
 
+.bds-row-head.bds-cell-align-start {
+    justify-content: start;
+    text-align: left;
+}
+
+.bds-row-head.bds-cell-align-center {
+    justify-content: center;
+    text-align: center;
+}
+
 .bds-col-head {
-    text-align: right;
     border-top: var(--sheet-border-style);
     background: var(--col-header-bg-color);
+}
+
+.bds-col-head-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.bds-col-head-content > * {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.bds-col-group-pane {
+    background: var(--col-header-bg-color);
+    color: var(--col-header-foreground-color);
+}
+
+.bds-col-group-head-left {
+    border-left: var(--sheet-border-style);
+}
+
+.bds-col-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-right: var(--sheet-border-style);
+    border-bottom: var(--sheet-border-style);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: default;
 }
 
 .bds-col-head, .bds-row-head {
@@ -220,6 +459,24 @@
 
 .bds-col-head:active {
     background: var(--header-selected-bg-color);
+}
+
+/* the parts of a reference in the formula being edited that move and resize it */
+.bds-reference-edge, .bds-reference-corner {
+    position: absolute;
+    box-sizing: border-box;
+    z-index: 13;
+    touch-action: none;
+    outline: none;
+}
+
+.bds-reference-edge {
+    cursor: move;
+}
+
+.bds-reference-corner {
+    z-index: 14;
+    border: 1px solid var(--sheet-bg-color);
 }
 
 .bds-unselectable {
@@ -244,8 +501,6 @@
 
 .bds-editor-overlay {
     background: var(--sheet-bg-color);
-    box-shadow: 0 2px 8px var(--shadow-overlay-color);
-    border-radius: 2px;
     pointer-events: all;
     position: absolute;
     box-sizing: border-box;
@@ -267,10 +522,13 @@
     display: block;
     position: absolute;
     box-sizing: border-box;
-    padding: 1px 4px;
     top: 0;
     left: 0;
     z-index: 1;
+    padding: var(--editor-padding-vertical) var(--editor-padding-horizontal);
+    /* text-align comes from the cell format and is inherited; align-content is what positions
+       the inline content vertically inside the full-height span. */
+    align-content: var(--editor-vertical-align, start);
 }
 
 .bds-highlight-result {
@@ -327,15 +585,27 @@
     background: var(--selection-bg-color);
 }
 
-.bds-select-text-input {
-    width: 100%;
-    border: none;
-    height: 100%;
+/* The input keeps its natural height so the wrapper's align-items can position it, the same
+   way .bds-sheet-cell positions .bds-cell-container. */
+.bds-date-editor {
+    display: flex;
     box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    align-items: var(--editor-vertical-align, start);
+    padding: var(--editor-padding-vertical) var(--editor-padding-horizontal);
 }
 
-.bds-select-text-input:focus {
+.date-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0;
+    border: none;
     outline: none;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    text-align: inherit;
 }
 
 .bds-select-editor {
@@ -345,14 +615,6 @@
     height: 100%;
 }
 
-.bds-select-editor-input {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-    align-items: center;
-}
-
 .bds-text-editor {
     display: flex;
     flex-direction: column;
@@ -360,10 +622,37 @@
     height: 100%;
 }
 
-.bds-select-editor-input .bds-text-editor {
-    flex-grow: 1;
-    flex-shrink: 1;
-    min-width: 0;
+/* An editor for the active cell that lives outside of the sheet. It grows with its text. */
+.bds-formula-bar {
+    position: relative;
+    box-sizing: border-box;
+    min-height: 1.75rem;
+    cursor: text;
+    font-family: var(--sheet-font-family);
+    font-size: var(--sheet-font-size);
+    font-weight: var(--sheet-font-weight);
+    color: var(--sheet-foreground-color);
+    background: var(--sheet-bg-color);
+}
+
+.bds-formula-bar .bds-text-editor, .bds-formula-bar .bds-text-editor > div {
+    min-height: inherit;
+}
+
+/* The input is in the flow so that the bar takes its height, and the highlighted text lies over it. */
+.bds-formula-bar .bds-highlight-input {
+    position: relative;
+    min-height: inherit;
+}
+
+.bds-formula-bar .bds-highlight-input, .bds-formula-bar .bds-highlight-result {
+    width: 100%;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.bds-formula-bar .bds-highlight-result {
+    height: 100%;
 }
 
 .bds-popover {
@@ -444,6 +733,7 @@
 
 .bds-func-suggestions {
     min-width: 100px;
+    max-width: 320px;
     margin-top: 4px;
     background: var(--sheet-bg-color);
     box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
@@ -451,9 +741,94 @@
 
 .bds-func-suggestions-item {
     padding: 2px 4px;
+    cursor: pointer;
+    outline: none;
+}
+
+.bds-func-suggestions-item-name .bds-func-suggestions-name {
+    font-style: italic;
+}
+
+.bds-func-suggestions-detail {
+    margin-left: 8px;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.bds-func-suggestions-item:hover {
+    background: var(--sheet-menu-hover-color);
+}
+
+.bds-func-suggestions-item.active {
+    background: var(--selection-bg-color);
+}
+
+.bds-func-hint-signature,
+.bds-func-hint-description,
+.bds-func-hint-param {
+    padding: 2px 4px;
+}
+
+.bds-func-hint-param {
+    border-top: var(--sheet-border-style);
+}
+
+.bds-func-hint-param-name {
+    font-weight: bold;
+}
+
+.bds-func-hint-param-optional {
+    font-weight: normal;
+}
+
+.bds-func-suggestions-description,
+.bds-func-hint-description,
+.bds-func-hint-param-description,
+.bds-func-hint-param-optional {
+    font-size: 0.85em;
+    white-space: normal;
+    opacity: 0.7;
 }
 
 .bds-virtual-grid-container {
     grid-template-areas: 'fT fT fT' 'fL C fR' 'fB fB fB';
     display: grid;
+}
+
+.bds-cell-has-flags {
+    position: relative;
+}
+
+.bds-cell-corner-flag {
+    position: absolute;
+    width: var(--bds-flag-size, 8px);
+    height: var(--bds-flag-size, 8px);
+    max-width: 100%;
+    max-height: 100%;
+    background-color: var(--bds-flag-color, currentColor);
+    pointer-events: none;
+}
+
+.bds-cell-corner-top-left {
+    top: 0;
+    left: 0;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.bds-cell-corner-top-right {
+    top: 0;
+    right: 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.bds-cell-corner-bottom-left {
+    bottom: 0;
+    left: 0;
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.bds-cell-corner-bottom-right {
+    bottom: 0;
+    right: 0;
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
 }
