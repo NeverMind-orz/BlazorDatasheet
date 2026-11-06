@@ -1,8 +1,11 @@
-.vars {
+.bds-vars {
     --sheet-font-weight: normal;
     --sheet-font-size: 0.75rem;
     --sheet-font-family: "Segoe UI Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Helvetica Neue", Arial, sans-serif;
     --selection-border-thickness: 2px;
+    --clipboard-border-thickness: 2px;
+    --clipboard-dash-length: 5px;
+    --clipboard-ants-duration: 0.6s;
     --sheet-border-width: 1px;
     --sheet-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     --sheet-cell-padding-vertical: 3px;
@@ -14,7 +17,7 @@
     --editor-padding-horizontal: max(0px, calc(var(--sheet-cell-padding-horizontal) - var(--selection-border-thickness) / 2));
 }
 
-.vars[theme='default'] {
+.bds-vars[theme='default'] {
     --sheet-foreground-color: #1f2937;
     --sheet-foreground-color-disabled: #9ca3af;
     --sheet-bg-color: #ffffff;
@@ -30,6 +33,10 @@
     --invalid-cell-foreground-color: #dc2626;
     --selection-bg-color: rgba(37, 99, 235, 0.14);
     --selection-border-color: #2563eb;
+    --spill-outline-color: #2563eb;
+    --spill-outline-thickness: 1px;
+    --clipboard-border-color: #2563eb;
+    --clipboard-gap-color: #ffffff;
     --selection-bg-color-unfocused: rgba(100, 116, 139, 0.10);
     --selection-border-color-unfocused: #94a3b8;
     --head-selection-bg-color-unfocused: #e8edf5;
@@ -58,7 +65,7 @@
     --header-selected-bg-color: #1d4ed8;
 }
 
-.vars[theme='dark'] {
+.bds-vars[theme='dark'] {
     --sheet-foreground-color: #a9a9a9;
     --sheet-foreground-color-disabled: #807f7f;
     --sheet-bg-color: #262626;
@@ -74,6 +81,9 @@
     --invalid-cell-foreground-color: #d71b1b;
     --selection-bg-color: rgba(83, 101, 121, 0.18);
     --selection-border-color: #1c6f9a;
+    --spill-outline-color: #1c6f9a;
+    --clipboard-border-color: #4fa3d1;
+    --clipboard-gap-color: #262626;
     --selection-bg-color-unfocused: rgba(83, 101, 121, 0.09);
     --selection-border-color-unfocused: #4d5761;
     --head-selection-bg-color-unfocused: rgb(45, 48, 51);
@@ -382,7 +392,7 @@
    the gridline layer's right/bottom edge shows through there as it does for ordinary cells, and a
    cell fill (which covers the whole merge) hides it as it does for ordinary cells. The left/top
    edges are the neighbouring tracks' gridlines, which sit just outside the merge. */
-.merged-cell {
+.bds-merged-cell {
     background: linear-gradient(var(--sheet-bg-color), var(--sheet-bg-color)) top left /
         calc(100% - var(--sheet-border-width)) calc(100% - var(--sheet-border-width)) no-repeat;
     pointer-events: all;
@@ -462,7 +472,7 @@
 }
 
 /* the parts of a reference in the formula being edited that move and resize it */
-.bds-reference-edge, .bds-reference-corner {
+.bds-reference-edge, .bds-reference-corner, .bds-selection-edge {
     position: absolute;
     box-sizing: border-box;
     z-index: 13;
@@ -470,8 +480,13 @@
     outline: none;
 }
 
-.bds-reference-edge {
+.bds-reference-edge, .bds-selection-edge {
     cursor: move;
+}
+
+/* selected rows and columns can be picked up by their headings */
+.bds-row-head.bds-movable-header, .bds-col-head.bds-movable-header {
+    cursor: grab;
 }
 
 .bds-reference-corner {
@@ -585,6 +600,26 @@
     background: var(--selection-bg-color);
 }
 
+/* Hover-only heading menu button: shown while the heading is hovered.
+   Opacity (not display) keeps the heading layout stable. A fully selected column keeps it visible,
+   which also covers the menu being open, since pressing the button selects the column. */
+.bds-col-head-menu-hover .bds-sheet-dropper {
+    opacity: 0;
+    transition: opacity 150ms ease;
+}
+
+.bds-col-head:hover .bds-col-head-menu-hover .bds-sheet-dropper,
+.bds-col-head.bds-selected-header-full .bds-col-head-menu-hover .bds-sheet-dropper,
+.bds-col-head-menu-hover .bds-sheet-dropper:focus-visible {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .bds-col-head-menu-hover .bds-sheet-dropper {
+        opacity: 1;
+    }
+}
+
 /* The input keeps its natural height so the wrapper's align-items can position it, the same
    way .bds-sheet-cell positions .bds-cell-container. */
 .bds-date-editor {
@@ -596,7 +631,7 @@
     padding: var(--editor-padding-vertical) var(--editor-padding-horizontal);
 }
 
-.date-input {
+.bds-date-input {
     box-sizing: border-box;
     width: 100%;
     padding: 0;
@@ -699,14 +734,14 @@
     background: color-mix(in srgb, var(--head-selection-bg-color) 60%, transparent);
 }
 
-.bds-select-item.active {
+.bds-select-item.bds-active {
     background: var(--head-selection-bg-color);
     color: var(--col-header-foreground-color);
     font-weight: 600;
     position: relative;
 }
 
-.bds-select-item.active::before {
+.bds-select-item.bds-active::before {
     content: "";
     position: absolute;
     left: 0;
@@ -759,7 +794,7 @@
     background: var(--sheet-menu-hover-color);
 }
 
-.bds-func-suggestions-item.active {
+.bds-func-suggestions-item.bds-active {
     background: var(--selection-bg-color);
 }
 
@@ -793,6 +828,10 @@
 .bds-virtual-grid-container {
     grid-template-areas: 'fT fT fT' 'fL C fR' 'fB fB fB';
     display: grid;
+}
+
+/* a cell an array formula in another cell spilled into. A hook for styling; not styled by default. */
+.bds-spill-cell {
 }
 
 .bds-cell-has-flags {
@@ -832,3 +871,85 @@
     right: 0;
     clip-path: polygon(100% 0, 0 100%, 100% 100%);
 }
+
+/* Marching ants around copied or cut cells */
+.bds-clipboard-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.bds-clipboard-box {
+    position: absolute;
+    box-sizing: border-box;
+    pointer-events: none;
+    --bds-ants-period: calc(var(--clipboard-dash-length) * 2);
+}
+
+.bds-ants {
+    position: absolute;
+    pointer-events: none;
+    background-repeat: repeat;
+}
+
+.bds-ants-top,
+.bds-ants-bottom {
+    left: calc(var(--clipboard-border-thickness) / -2);
+    right: calc(var(--clipboard-border-thickness) / -2);
+    height: var(--clipboard-border-thickness);
+    background-image: repeating-linear-gradient(90deg,
+        var(--clipboard-border-color) 0 var(--clipboard-dash-length),
+        var(--clipboard-gap-color) var(--clipboard-dash-length) var(--bds-ants-period));
+    background-size: var(--bds-ants-period) 100%;
+    animation: bds-ants-x var(--clipboard-ants-duration) linear infinite;
+}
+
+.bds-ants-top {
+    top: calc(var(--clipboard-border-thickness) / -2);
+}
+
+.bds-ants-bottom {
+    bottom: calc(var(--clipboard-border-thickness) / -2);
+    animation-direction: reverse;
+}
+
+.bds-ants-left,
+.bds-ants-right {
+    top: calc(var(--clipboard-border-thickness) / -2);
+    bottom: calc(var(--clipboard-border-thickness) / -2);
+    width: var(--clipboard-border-thickness);
+    background-image: repeating-linear-gradient(180deg,
+        var(--clipboard-border-color) 0 var(--clipboard-dash-length),
+        var(--clipboard-gap-color) var(--clipboard-dash-length) var(--bds-ants-period));
+    background-size: 100% var(--bds-ants-period);
+    animation: bds-ants-y var(--clipboard-ants-duration) linear infinite;
+}
+
+.bds-ants-left {
+    left: calc(var(--clipboard-border-thickness) / -2);
+    animation-direction: reverse;
+}
+
+.bds-ants-right {
+    right: calc(var(--clipboard-border-thickness) / -2);
+}
+
+@keyframes bds-ants-x {
+    from { background-position: 0 0; }
+    to { background-position: var(--bds-ants-period) 0; }
+}
+
+@keyframes bds-ants-y {
+    from { background-position: 0 0; }
+    to { background-position: 0 var(--bds-ants-period); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bds-ants {
+        animation: none;
+    }
+}
+
+/* Keep the fill handle above the move hit targets. */
+.bds-auto-fill { z-index: 16; }
+[data-bds-drag-cursor] * { cursor: inherit !important; }

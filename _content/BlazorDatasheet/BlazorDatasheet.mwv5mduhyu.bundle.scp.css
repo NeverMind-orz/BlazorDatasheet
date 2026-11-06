@@ -1,0 +1,20 @@
+/* _content/BlazorDatasheet/Edit/DefaultComponents/HighlightedInput.Razor.rz.scp.css */
+/* _content/BlazorDatasheet/Edit/DefaultComponents/SelectEditorComponent.razor.rz.scp.css */
+/* _content/BlazorDatasheet/Edit/DefaultComponents/TextEditorComponent.razor.rz.scp.css */
+.bds-text-input[b-ogyzqrxhj5] {
+    width: 100%;
+    border: none;
+    padding: 2px;
+    height: calc(100%);
+    box-sizing: border-box;
+}
+
+.bds-text-input:focus[b-ogyzqrxhj5] {
+    outline: none;
+}
+/* _content/BlazorDatasheet/Render/CaretButton.razor.rz.scp.css */
+/* _content/BlazorDatasheet/Render/DefaultComponents/SelectRenderer.razor.rz.scp.css */
+/* _content/BlazorDatasheet/Render/DefaultComponents/TextRenderer.razor.rz.scp.css */
+.bds-cell-renderer[b-7xkejoswml]{
+    overflow:hidden;
+}
